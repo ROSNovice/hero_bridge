@@ -26,6 +26,7 @@ class JointTrajectory(object):
 
         # clients
         self.client_safe_joint_change = rospy.ServiceProxy('safe_pose_changer/change_joint', SafeJointChange)
+        self.client_safe_joint_change.wait_for_service()
 
     def safe_joint_change_srv(self, goal):
         """
@@ -40,11 +41,6 @@ class JointTrajectory(object):
 
         # append the seeds for the fibonacci sequence
         safeJointChange = JointState()
-        safeJointChange.header.seq = 0
-        safeJointChange.header.stamp.secs = 0
-        safeJointChange.header.stamp.nsecs = 0
-        safeJointChange.header.frame_id = ''
-
         safeJointChange.name = goal.trajectory.joint_names
         safeJointChange.position = [0 for name in safeJointChange.name]
         safeJointChange.velocity = [0 for name in safeJointChange.name]
@@ -62,7 +58,6 @@ class JointTrajectory(object):
             # this step is not necessary, the sequence is computed at 1 Hz for demonstration purposes
             #r.sleep()
             safeJointChange.position = point.positions
-            self.client_safe_joint_change.wait_for_service()
             success=self.client_safe_joint_change(safeJointChange)
             if not success:
                 rospy.logerr('Trajectory bridge failed to change pose')
