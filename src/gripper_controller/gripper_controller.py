@@ -48,11 +48,16 @@ class JointTrajectory(object):
         :param goal: the FollowJointTrajectoryAction type
         :return: the SafeJointChange message type
         """
-
         if goal.command.direction is goal.command.OPEN:
-            return self._open_gripper()
+            if goal.command.max_torque < 0:
+                return self._open_gripper2(goal.command.max_torque)
+            else:
+                return self._open_gripper2()
         elif goal.command.direction is goal.command.CLOSE:
-            return self._close_gripper()
+            if goal.command.max_torque > 0:
+                return self._close_gripper(goal.command.max_torque)
+            else:
+                return self._close_gripper()
         else:
             rospy.loginfo('Trajectory bridge: received gripper goal that is nor OPEN or CLOSE')
             return False
@@ -76,22 +81,44 @@ class JointTrajectory(object):
         self.client_safe_joint_change.wait_for_service()
         return out
 
-    def _close_gripper(self):
-        effort = 0.1  # 0.1 Newton is enough for nearly everything
+    def _close_gripper(self, effort=0.1):
         _HAND_MOMENT_ARM_LENGTH = 0.07
 
         goal = GripperApplyEffortGoal()
         goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
         self._grasp_client.send_goal(goal)
 
-        timeout = rospy.Duration(5)
+        timeout = rospy.Duration(10)
         if self._grasp_client.wait_for_result(timeout):
             self._grasp_client.get_result()
             state = self._grasp_client.get_state()
             if state != actionlib.GoalStatus.SUCCEEDED:
+                rospy.logwarn("State is not SUCCEEDED")
                 return False
         else:
             self._grasp_client.cancel_goal()
+            rospy.logwarn("Timeout")
+            return False
+
+        return
+
+    def _open_gripper2(self, effort=-0.1):
+        _HAND_MOMENT_ARM_LENGTH = 0.07
+
+        goal = GripperApplyEffortGoal()
+        goal.effort = - effort * _HAND_MOMENT_ARM_LENGTH
+        self._grasp_client.send_goal(goal)
+
+        timeout = rospy.Duration(10)
+        if self._grasp_client.wait_for_result(timeout):
+            self._grasp_client.get_result()
+            state = self._grasp_client.get_state()
+            if state != actionlib.GoalStatus.SUCCEEDED:
+                rospy.logwarn("State is not SUCCEEDED")
+                return False
+        else:
+            self._grasp_client.cancel_goal()
+            rospy.logwarn("Timeout")
             return False
 
         return True
