@@ -81,9 +81,9 @@ class JointTrajectoryNode(object):
                     error_string=msg
                 ), msg)
                 return
-            if self.monitor_joint_state_within_tolerance(goal.trajectory.points[-1].positions):
-                self.srv_safe_joint_change.set_succeeded()
-                return
+            # if self.monitor_joint_state_within_tolerance(goal.trajectory.points[-1].positions):
+            #     self.srv_safe_joint_change.set_succeeded()
+            #     return
         self.srv_safe_joint_change.set_aborted()
         self.set_to_current_pose(goal.trajectory.header)
         return
